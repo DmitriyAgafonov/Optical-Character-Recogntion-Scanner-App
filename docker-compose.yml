@@ -1,0 +1,27 @@
+version: '3'
+
+services:
+  scan_service:
+    build: ./server
+    ports:
+      - 8000:8000
+    networks:
+      - scan_network
+    container_name: scan_cont
+
+  streamlit_service:
+    build: ./client
+    depends_on:
+      - scan_service
+    ports:
+      - 8501:8501
+    networks:
+      - scan_network
+    container_name: client_cont
+
+networks:
+  scan_network:
+    driver: bridge
+
+
+
