@@ -70,7 +70,8 @@ params_to_server = {
     'crop': crop_param
 }
 
-url = 'http://scan_service:8000/scan'
+# url = 'http://scan_service:8000/scan'
+url = 'http://localhost:8000/scan'
 
 response = None
 ocr_result = None
