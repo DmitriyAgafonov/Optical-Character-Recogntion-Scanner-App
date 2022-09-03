@@ -6,7 +6,8 @@ COPY requirements.txt /server
 
 WORKDIR /server
 
-RUN apt-get update && apt-get install -y python3-opencv
+RUN apt-get update && apt-get install -y python3-opencv \
+					nano
 RUN apt-get -y install tesseract-ocr
 
 RUN pip install -r requirements.txt
