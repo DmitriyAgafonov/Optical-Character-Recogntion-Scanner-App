@@ -15,6 +15,8 @@ COPY . /client
 
 EXPOSE 8501
 
+ENV DOCKER_VAR 1
+
 #ENTRYPOINT ['streamlit', 'run']
 
 CMD ["streamlit", "run", "ui.py"]
