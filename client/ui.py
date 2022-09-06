@@ -4,6 +4,7 @@ import json
 import numpy as np
 import cv2
 import io
+import os
 
 st.set_page_config(page_title='Scanner', layout="wide", initial_sidebar_state='auto')
 
@@ -70,7 +71,8 @@ params_to_server = {
     'crop': crop_param
 }
 
-url = 'http://scan_service:8000/scan'
+url = 'http://scan_service:8000/scan' if os.getenv('DOCKER_VAR') \
+	else 'http://localhost:8000/scan'
 
 response = None
 ocr_result = None
