@@ -5,6 +5,9 @@ import numpy as np
 import cv2
 import io
 import os
+import logging
+import sys
+
 
 st.set_page_config(page_title='Scanner', layout="wide", initial_sidebar_state='auto')
 
@@ -48,6 +51,16 @@ def from_stream_to_image(bytes_stream):
 
 ########################################################################
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+# handler = logging.StreamHandler(stream=sys.stdout)
+# handler.setFormatter(logging.Formatter(fmt='[%(asctime)s: %(levelname)s] %(message)s'))
+# logger.addHandler(handler)
+
+logger.debug('debug info')
+
+########################################################################
+
 
 st.title('CV Scanner')
 
@@ -73,6 +86,7 @@ params_to_server = {
 
 url = 'http://scan_service:8000/scan' if os.getenv('DOCKER_VAR') \
 	else 'http://localhost:8000/scan'
+logger.debug('using url %s', url)
 
 response = None
 ocr_result = None
@@ -85,6 +99,7 @@ with col1:
     uploaded_file = st.file_uploader("Choose an image...", type=['jpg', 'png', 'jpeg'])
 
     if uploaded_file is not None:
+        logger.info('image was uploaded')
         file_img = {'file': uploaded_file}
         # print(uploaded_file.type)
         # print(type(uploaded_file))
@@ -101,20 +116,31 @@ with col1:
     if button:
         if data is not None and uploaded_file is not None:
             if checkbox:
-                st.info('Image was sent + OCR')
-                response = request(data, file_img, url)
+                try:
+                    st.info('Image + OCR')
+                    response = request(data, file_img, url)
+                    logger.info('file was sent with ocr checkbox, status code: %s', response.status_code)
+                except Exception as e:
+                    logger.exception('request with ocr failed, error at %s', e)
                 # print(response.json())
                 with col3:
                     st.subheader('OCR Content')
                     if response is not None and response.status_code == 200:
                         st.write(response.json()['ocr_content'])
+                        logger.info('got ocr content')
                     else:
                         st.write('Error while scanning image and OCR. Change parameters!')
+                        logger.info('failed to perform ocr')
 
             else:
-                st.info('Image was sent')
-                response = request(data, file_img, url)
-                print(response.status_code)
+                try:
+                    st.info('Image')
+                    response = request(data, file_img, url)
+                    print(response.status_code)
+                    logger.info('file only was sent, status code %s', response.status_code)
+                except Exception as e:
+                    logger.exception('request failed, error at %s', e)
+
                 with col3:
                     st.subheader('Scanning result')
                     st.write(' ')
@@ -122,8 +148,10 @@ with col1:
                         image_stream = io.BytesIO(response.content)  # Read image as a stream of bytes
                         image = from_stream_to_image(image_stream)
                         st.image(image, caption='Ready image', use_column_width='auto')
+                        logger.info('got scan content')
                     else:
                         st.write("Error while scanning image. Change parameters!")
+                        logger.info('failed to perform scanning')
 
             # st.success('Done!')
         else:
