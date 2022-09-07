@@ -6,7 +6,7 @@ import cv2
 import io
 import os
 import logging
-import sys
+import pymongo
 
 
 st.set_page_config(page_title='Scanner', layout="wide", initial_sidebar_state='auto')
@@ -77,6 +77,7 @@ st.sidebar.write(contour_param)
 crop_param = crop_ui()
 st.sidebar.write(crop_param)
 
+
 params_to_server = {
     'median_blur': median_blur_param,
     'canny': canny_param,
@@ -84,8 +85,24 @@ params_to_server = {
     'crop': crop_param
 }
 
-url = 'http://scan_service:8000/scan' if os.getenv('DOCKER_VAR') \
-	else 'http://localhost:8000/scan'
+db_config = {
+    "username": "root",
+    "password": "secret",
+    "server": "mongo-cont",
+}
+
+if os.getenv('DOCKER_VAR'):
+    url, connector = \
+        'http://scan_service:8000/scan', \
+        'mongodb://{}:{}@{}'.format(
+                                db_config['username'],
+                                db_config['password'],
+                                db_config['service']
+                            )   # "mongodb://root:secret@mongo-cont"
+else:
+    url, connector = \
+    'http://localhost:8000/scan', 'mongodb://localhost:27017/'
+
 logger.debug('using url %s', url)
 
 response = None
@@ -107,6 +124,8 @@ with col1:
 
         button = st.button('Scan')
         checkbox = st.checkbox('Apply OCR')
+
+        button_to_db = st.button('Save image to DB')
 
     params_to_server['ocr_status'] = checkbox
 
@@ -156,6 +175,23 @@ with col1:
             # st.success('Done!')
         else:
             st.error('Data or File is empty')
+
+    if button_to_db:
+        client = pymongo.MongoClient(connector)
+        db = client['scandb']
+        files_coll = db['files_collection']
+
+        test_dict = { "name": "John", "address": "Highway 228" }
+
+        document_id = files_coll.insert_one(test_dict).inserted_id
+
+        logger.debug('db names %s , document id %s',
+                     client.list_database_names(),
+                     document_id)
+
+
+
+
     # else:
     #     st.error('Load pic first')
 
