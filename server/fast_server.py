@@ -8,7 +8,7 @@ from pydantic import BaseModel
 import json
 from numpy import asarray
 import pytesseract
-# import cv2
+import cv2
 # import numpy as np
 
 from scan import *
@@ -101,12 +101,11 @@ def perform_scanning(data: ScanParameters = Body(...),
         # print(ocr_content)
         return {'ocr_content': str(pytesseract.image_to_string(scanned_img))}
     else:
-        # Return the image as a stream specifying media type
         return StreamingResponse(file_image, media_type="image/jpeg")
 
 
-# nest_asyncio.apply()
+nest_asyncio.apply()
 
-# if __name__ == '__main__':
-#     host = "127.0.0.2" if os.getenv("DOCKER-SETUP") else "localhost"  # or 'localhost'
-#     uvicorn.run(app, host=host, port=8800, debug=True)
+if __name__ == '__main__':
+    host = "127.0.0.2" if os.getenv("DOCKER-SETUP") else "localhost"  # or 'localhost'
+    uvicorn.run(app, host=host, port=8000, debug=False)
