@@ -9,10 +9,14 @@ import json
 from numpy import asarray
 import pytesseract
 import cv2
+import logging
 # import numpy as np
 
 from scan import *
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+logger.debug('debug info')
 
 dir_name = "images_uploaded"
 if not os.path.exists(dir_name):
@@ -66,7 +70,7 @@ def perform_scanning(data: ScanParameters = Body(...),
     crop = params['crop']
     ocr_status = params['ocr_status']
 
-    print(median_blur, canny, contour, crop, ocr_status)
+    logger.debug(median_blur, canny, contour, crop, ocr_status)
 
     # Validate File
     filename = file.filename
