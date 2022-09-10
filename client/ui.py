@@ -89,18 +89,18 @@ params_to_server = {
 db_config = {
     "username": "root",
     "password": "secret",
-    "server": "mongo-cont",
+    "server": "mongo-service",
     "db_name": "scandb",
     'collection_name': "files_collection"
 }
 
 if os.getenv('DOCKER_VAR'):
     url, connector = \
-        'http://scan_service:8000/scan', \
+        'http://scan-service:8000/scan', \
         'mongodb://{}:{}@{}'.format(
                                 db_config['username'],
                                 db_config['password'],
-                                db_config['service']
+                                db_config['server']
                             )   # "mongodb://root:secret@mongo-cont"
 else:
     url, connector = \
@@ -201,11 +201,14 @@ with col4:
 
             bytes_dict = {'bytes': bytes_data}
 
-            document_id = files_coll.insert_one(bytes_dict).inserted_id
-
-            logger.debug('db names %s , document id %s',
-                         client.list_database_names(),
-                         document_id)
+            try:
+                document_id = files_coll.insert_one(bytes_dict).inserted_id
+                st.info("File sent to DB")
+                logger.debug('db names %s , document id %s',
+                             client.list_database_names(),
+                             document_id)
+            except Exception as e:
+                logger.exception('Failed to write to DB, error %s', e)
 
             # with col6:
             #     button_from_db = st.button('Get last images')
