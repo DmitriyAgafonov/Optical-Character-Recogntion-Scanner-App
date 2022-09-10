@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 
 server/images_uploaded/
+data/
 
 .idea
 
