@@ -2,9 +2,13 @@ import streamlit as st
 import requests
 import json
 import numpy as np
-import cv2
+# import cv2
 import io
 import os
+import logging
+import pymongo
+from PIL import Image
+
 
 st.set_page_config(page_title='Scanner', layout="wide", initial_sidebar_state='auto')
 
@@ -38,13 +42,23 @@ def request(data, file, server_url: str):
     return response
 
 
-def from_stream_to_image(bytes_stream):
-    bytes_stream.seek(0)    # Start the stream from the beginning (position zero)
-    file_bytes = np.asarray(bytearray(bytes_stream.read()), dtype=np.uint8)     # Write the stream of bytes into a numpy array
-    image = cv2.imdecode(file_bytes, cv2.IMREAD_GRAYSCALE)
+# def from_stream_to_image(bytes_stream):
+#     bytes_stream.seek(0)    # Start the stream from the beginning (position zero)
+#     file_bytes = np.asarray(bytearray(bytes_stream.read()), dtype=np.uint8)     # Write the stream of bytes into a numpy array
+#     image = cv2.imdecode(file_bytes, cv2.IMREAD_GRAYSCALE)
+#
+#     return image
 
-    return image
 
+########################################################################
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+# handler = logging.StreamHandler(stream=sys.stdout)
+# handler.setFormatter(logging.Formatter(fmt='[%(asctime)s: %(levelname)s] %(message)s'))
+# logger.addHandler(handler)
+
+logger.debug('debug info')
 
 ########################################################################
 
@@ -64,6 +78,7 @@ st.sidebar.write(contour_param)
 crop_param = crop_ui()
 st.sidebar.write(crop_param)
 
+
 params_to_server = {
     'median_blur': median_blur_param,
     'canny': canny_param,
@@ -71,8 +86,33 @@ params_to_server = {
     'crop': crop_param
 }
 
-url = 'http://scan_service:8000/scan' if os.getenv('DOCKER_VAR') \
-	else 'http://localhost:8000/scan'
+db_config = {
+    "username": "root",
+    "password": "secret",
+    "server": "mongo-cont",
+    "db_name": "scandb",
+    'collection_name': "files_collection"
+}
+
+if os.getenv('DOCKER_VAR'):
+    url, connector = \
+        'http://scan_service:8000/scan', \
+        'mongodb://{}:{}@{}'.format(
+                                db_config['username'],
+                                db_config['password'],
+                                db_config['service']
+                            )   # "mongodb://root:secret@mongo-cont"
+else:
+    url, connector = \
+        'http://localhost:8000/scan', 'mongodb://localhost:27017/'
+
+logger.debug('using url %s', url)
+
+# DB connection
+client = pymongo.MongoClient(connector)
+db = client[db_config['db_name']]
+files_coll = db[db_config['collection_name']]
+
 
 response = None
 ocr_result = None
@@ -85,6 +125,7 @@ with col1:
     uploaded_file = st.file_uploader("Choose an image...", type=['jpg', 'png', 'jpeg'])
 
     if uploaded_file is not None:
+        logger.info('image was uploaded')
         file_img = {'file': uploaded_file}
         # print(uploaded_file.type)
         # print(type(uploaded_file))
@@ -101,33 +142,97 @@ with col1:
     if button:
         if data is not None and uploaded_file is not None:
             if checkbox:
-                st.info('Image was sent + OCR')
-                response = request(data, file_img, url)
+                try:
+                    st.info('Image + OCR')
+                    response = request(data, file_img, url)
+                    logger.info('file was sent with ocr checkbox, status code: %s', response.status_code)
+                except Exception as e:
+                    logger.exception('request with ocr failed, error at %s', e)
                 # print(response.json())
                 with col3:
                     st.subheader('OCR Content')
                     if response is not None and response.status_code == 200:
                         st.write(response.json()['ocr_content'])
+                        logger.info('got ocr content')
                     else:
                         st.write('Error while scanning image and OCR. Change parameters!')
+                        logger.info('failed to perform ocr')
 
             else:
-                st.info('Image was sent')
-                response = request(data, file_img, url)
-                print(response.status_code)
+                try:
+                    st.info('Image')
+                    response = request(data, file_img, url)
+                    print(response.status_code)
+                    logger.info('file only was sent, status code %s', response.status_code)
+                except Exception as e:
+                    logger.exception('request failed, error at %s', e)
+
                 with col3:
                     st.subheader('Scanning result')
                     st.write(' ')
                     if response is not None and response.status_code == 200:
                         image_stream = io.BytesIO(response.content)  # Read image as a stream of bytes
-                        image = from_stream_to_image(image_stream)
+                        # image = from_stream_to_image(image_stream)
+                        image = Image.open(image_stream)
                         st.image(image, caption='Ready image', use_column_width='auto')
+                        logger.info('got scan content')
                     else:
                         st.write("Error while scanning image. Change parameters!")
+                        logger.info('failed to perform scanning')
 
             # st.success('Done!')
         else:
             st.error('Data or File is empty')
+
+col4, col5, col6 = st.columns([3, 1, 3])
+with col4:
+    button_to_db = st.button('Save image to DB')
+
+    if button_to_db:
+        if uploaded_file is not None:
+            bytes_data = uploaded_file.getvalue()
+            # logger.debug('byres: ', bytes_data)
+
+            # stream = io.BytesIO(bytes_data)
+            # img = Image.open(stream)
+            # st.image(img)
+
+            # test_dict = { "name": "John", "address": f"Highway {np.random.randint(100)}" }
+
+            bytes_dict = {'bytes': bytes_data}
+
+            document_id = files_coll.insert_one(bytes_dict).inserted_id
+
+            logger.debug('db names %s , document id %s',
+                         client.list_database_names(),
+                         document_id)
+
+            # with col6:
+            #     button_from_db = st.button('Get last images')
+            #     var = ['qwert']
+            #     if button_from_db:
+            #         if var is not None:
+            #             st.write('qwerty')
+            #             # files_coll = db['files_collection']
+            #             # for i in files_coll.find():
+            #             #     print('document: %s', i)
+
+        else:
+            st.error('Upload file first')
+            logger.error('no file to upload')
+
+with col6:
+    button_from_db = st.button('Get last images')
+    n = 3
+    if button_from_db:
+        st.write('Total number of saved images: ', files_coll.count_documents({}))
+        st.write(f'Last {n} files')
+        for i in files_coll.find().sort('_id', -1).limit(n):
+            st.write(i['_id'].generation_time)
+            stream = io.BytesIO(i['bytes'])
+            img = Image.open(stream)
+            st.image(img)
+
     # else:
     #     st.error('Load pic first')
 
