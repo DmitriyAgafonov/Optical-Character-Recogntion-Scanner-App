@@ -96,7 +96,7 @@ db_config = {
 
 if os.getenv('DOCKER_VAR'):
     url, connector = \
-        'http://scan-service:8000/scan', \
+        'http://fastapi-service:8000/scan', \
         'mongodb://{}:{}@{}'.format(
                                 db_config['username'],
                                 db_config['password'],

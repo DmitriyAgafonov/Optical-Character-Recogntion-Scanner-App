@@ -1,26 +1,37 @@
 version: '3'
 
 services:
-  scan_service:
+  fastapi-service:
     build: ./server
+    depends_on:
+      - mongo-service
     ports:
       - 8000:8000
     networks:
-      - scan_network
-    container_name: scan_cont
+      - ocr-net
+    container_name: fastapi-cont
 
-  streamlit_service:
+  streamlit-service:
     build: ./client
     depends_on:
-      - scan_service
+      - fastapi-service
     ports:
       - 8501:8501
     networks:
-      - scan_network
-    container_name: client_cont
+      - ocr-net
+    container_name: streamlit-cont
+
+  mongo-service:
+    build: ./database
+    ports:
+      - 27017:27017
+    networks:
+      - ocr-net
+    container_name: mongo-cont
+
 
 networks:
-  scan_network:
+  ocr-net:
     driver: bridge
 
 
