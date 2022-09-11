@@ -6,6 +6,12 @@ __pycache__/
 server/images_uploaded/
 data/
 
+app.py
+app_pipeline.py
+image_processing.py
+streamlit_ui.py
+tess.py
+
 .idea
 
 # C extensions
