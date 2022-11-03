@@ -6,6 +6,8 @@ __pycache__/
 server/images_uploaded/
 data/
 
+/*.py
+
 .idea
 
 # C extensions
