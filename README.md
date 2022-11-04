@@ -28,3 +28,5 @@ CLient-server
 4. Warp - image perspective transformation with page's contour that was found
 
 <img src="https://user-images.githubusercontent.com/31970304/200015159-336bb0ac-0858-40e0-9009-8616de9b7592.jpg" height="300">
+
+<img src="https://user-images.githubusercontent.com/31970304/200017108-1ffcab14-9c08-42e1-b911-04981a6948e4.png" height="300">
