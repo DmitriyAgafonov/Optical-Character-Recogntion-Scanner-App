@@ -1,7 +1,7 @@
 # Optical-Character-Recogntion-Scanner-App
 OCR Scanner Application with Streamlit, FastAPI, Tesseract and MongoDB
 
-Sequential app functionality:
+Sequential app subprocesses:
 - User uploads image that should be scanned
 - Image scanning (resizing, filtering, warping and cropping image) using OpenCV
 - Detecting and recognizing characters using Tesseract
